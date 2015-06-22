@@ -1,40 +1,41 @@
 setwd("~/Bioinformatics Work/Meth & RNA/Meth_overview")
+##############
+#### This file cleans and preps the meth file inlcuding the normal samples
+### Including the normals will result in changes to the designation of the tertile etc
+### which might effect the results, hence keeping two seperate files
 
-#########
-## This file takes the meth data and cleans and preps it for later analysis in prism
-####  After completion of running this file - find & replace "island" with "island"
-#### Then find and replace "Fang" with "Stir" and do island over again.
-#### Then proceed to do the normals combine file set
 
 ##### Read in exp & clin file
-exp <- read.table("Exp_final.txt", sep = "\t", header = TRUE, row.names = 1)
+exp <- read.table("Exp_inc_normals.txt", sep = "\t", header = TRUE, row.names = 1)
 exp <- as.data.frame(t(exp))
 
-clin <- read.table("Clinical_final.txt", sep = "\t", header = TRUE, row.names = 1)
+clin <- read.table("Clinical_final_normals.txt", sep = "\t", header = TRUE, row.names = 1)
 
-################ read in the meth file, wihtout row names
+### Use the meth file that already has duplicate removed
+Meth1 <- read.table("Fang_TSS200_all.txt", sep = "\t", header = TRUE)
 
-Meth1 <- read.table("Fang_TSS200_island.txt", sep = "\t", header = TRUE)
+######## read in the normal file
+Norm1<- read.table("Fang_TSS200_all_norm.txt", sep = "\t", header = TRUE, row.names = 1)
 
-### find dupliucated rownames and remove
-list <- which(duplicated(Meth1[,1]))
+##### check the colnames are matching and remove excess
+list <- intersect(colnames(Meth1), colnames(Norm1))
+Meth3 <- Meth1[,list]
 
-Meth2 <- Meth1[-list,]
 
-####### write out the table / open, fix in excel and reopen with rownames
-write.table(Meth2, "Fang_TSS200_island.txt", sep = "\t")
-Meth3 <- read.table("Fang_TSS200_island.txt", sep = "\t", header = TRUE, row.names = 1)
+### bind together as a set
+Meth4 <- rbind(Norm1, Meth3)
 
 ##### Match rownames to exp 
 #### check samples match between files and trim
 
-list <- intersect(row.names(Meth3), row.names(exp))
-Meth3 <- Meth3[list,]
-exp <- exp[list,]
+list <- intersect(row.names(Meth4), row.names(exp))
+Meth4 <- Meth4[list,]
 clin <- clin[list,]
+exp <- exp[list,]
+
 #### save out the new meth file
 
-write.table(Meth3, "Fang_TSS200_island_final.txt", sep = "\t")
+write.table(Meth4, "Fang_TSS200_all_norm_final.txt", sep = "\t")
 
 ######## set up the colmeans for meth set
 
@@ -45,11 +46,11 @@ center_colmeans <- function(x) {
 }
 
 # apply it
-CentreMeth<- center_colmeans(Meth3)
+CentreMeth<- center_colmeans(Meth4)
 
 Meth_Ave <- as.data.frame(rowMeans(CentreMeth))
 
-rownames(Meth_Ave) <- rownames(Meth3) 
+rownames(Meth_Ave) <- rownames(Meth4) 
 colnames(Meth_Ave)[1] <- "MethScore"
 #write.table(Meth_Ave, "Meth_beta_islands_ave.txt", sep = "\t")
 
@@ -84,34 +85,33 @@ exp_set$MethScore <- Meth_Ave$MethScore
 exp_set$Quartile <- Values$quartile
 exp_set$Tertile <- Terts$terts
 
-write.table(exp_set, "Fang_TSS200_island_exp_set.txt", sep = "\t")
+write.table(exp_set, "Fang_TSS200_all_norm_exp_set.txt", sep = "\t")
 #######################################################################################
-###########  TSS1500 now
 
-################ read in the meth file, wihtout row names
+### Use the meth file that already has duplicate removed
+Meth1 <- read.table("Fang_TSS1500_all.txt", sep = "\t", header = TRUE)
 
-Meth1 <- read.table("Fang_TSS1500_island.txt", sep = "\t", header = TRUE)
+######## read in the normal file
+Norm1<- read.table("Fang_TSS1500_all_norm.txt", sep = "\t", header = TRUE, row.names = 1)
 
-### find dupliucated rownames and remove
-list <- which(duplicated(Meth1[,1]))
+##### check the colnames are matching and remove excess
+list <- intersect(colnames(Meth1), colnames(Norm1))
+Meth3 <- Meth1[,list]
 
-Meth2 <- Meth1[-list,]
-
-####### write out the table / open, fix in excel and reopen with rownames
-write.table(Meth2, "Fang_TSS1500_island.txt", sep = "\t")
-Meth3 <- read.table("Fang_TSS1500_island.txt", sep = "\t", header = TRUE, row.names = 1)
+### bind together as a set
+Meth4 <- rbind(Norm1, Meth3)
 
 ##### Match rownames to exp 
 #### check samples match between files and trim
-### much match island otherwise the row order is different and this is bad.
 
-list <- intersect(row.names(Meth3), row.names(exp))
-Meth3 <- Meth3[list,]
+list <- intersect(row.names(Meth4), row.names(exp))
+Meth4 <- Meth4[list,]
 clin <- clin[list,]
 exp <- exp[list,]
+
 #### save out the new meth file
 
-write.table(Meth3, "Fang_TSS1500_island_final.txt", sep = "\t")
+write.table(Meth4, "Fang_TSS1500_all_norm_final.txt", sep = "\t")
 
 ######## set up the colmeans for meth set
 
@@ -122,11 +122,11 @@ center_colmeans <- function(x) {
 }
 
 # apply it
-CentreMeth<- center_colmeans(Meth3)
+CentreMeth<- center_colmeans(Meth4)
 
 Meth_Ave <- as.data.frame(rowMeans(CentreMeth))
 
-rownames(Meth_Ave) <- rownames(Meth3) 
+rownames(Meth_Ave) <- rownames(Meth4) 
 colnames(Meth_Ave)[1] <- "MethScore"
 #write.table(Meth_Ave, "Meth_beta_islands_ave.txt", sep = "\t")
 
@@ -160,6 +160,6 @@ exp_set$Survival_event <- clin$OS_event_nature2012
 exp_set$MethScore <- Meth_Ave$MethScore
 exp_set$Quartile <- Values$quartile
 exp_set$Tertile <- Terts$terts
-  
 
-write.table(exp_set, "Fang_TSS1500_island_exp_set.txt", sep = "\t")
+write.table(exp_set, "Fang_TSS1500_all_norm_exp_set.txt", sep = "\t")
+#######################################################################################

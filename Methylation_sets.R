@@ -5,11 +5,11 @@ library(survival)
 
 
 ### Load in the clinical data
-clin <- read.table("Clinical_final.txt", sep = "\t", header = TRUE, row.names = 1)
+clin <- read.table("Clinical_final_normals.txt", sep = "\t", header = TRUE, row.names = 1)
 
 ### Load in the exp data
 
-exp <- read.table("Exp_final.txt", sep = "\t", header = TRUE, row.names = 1)
+expt <- read.table("Exp_final.txt", sep = "\t", header = TRUE, row.names = 1)
 
 exp <- as.data.frame(t(exp))
 
@@ -36,6 +36,7 @@ CentreFang <- center_colmeans(fang_beta)
 Fang_Ave <- as.data.frame(rowMeans(CentreFang))
 
 rownames(Fang_Ave) <- rownames(fang_beta) 
+colnames(Fang_Ave)[1] <- "MethScore"
 write.table(Fang_Ave, "Fang_beta_average.txt", sep = "\t")
 
 hist(Fang_Ave$`rowMeans(CentreFang)`)
@@ -72,7 +73,7 @@ count(B_cimp$ME_Rank)
 CIMP <- as.factor(B_cimp$ME_Rank)
 
 ### Seperate into low and high methylation groups by quartile - beta group
-colnames(Fang_Ave)[1] <- "MethScore"
+
 attach(Fang_Ave)
 ### for 4 quartiles
 
@@ -105,25 +106,65 @@ Half <- as.factor(Values$half)
 ### Do a box plot, anova, etc
 
 boxplot(exp$DNMT1 ~ Quar)
+
+### AOV testing shows that DNMT is higher in basal  than other subtype
+aov.out = aov(exp$DNMT1 ~ Pam50)
+summary(aov.out)
+TukeyHSD(aov.out)
+
+
+### And only marginally higher in the lowest quartile of FANG methylation (p = ~ 0.1)
+aov.out = aov(exp$DNMT1 ~ Quar)
+summary(aov.out)
+TukeyHSD(aov.out)
+##CIMP is not related to DNMT expression
+aov.out = aov(exp$DNMT1 ~ CIMP)
+summary(aov.out)
+TukeyHSD(aov.out)
+
+
+### What about methylation quartile by Pam50?
+
+boxplot(Fang_Ave$MethScore ~ Pam50)
+aov.out = aov(Fang_Ave$MethScore ~ Pam50)
+summary(aov.out)
+TukeyHSD(aov.out)
+### This shows that methylation is reduced in basals com to others 
+## What about in Stir?
+boxplot(Stir_Ave$MethScore ~ Pam50)
+aov.out = aov(Stir_Ave$MethScore ~ Pam50)
+summary(aov.out)
+TukeyHSD(aov.out)
+### Pattern is still there but not as pronounced (as expected). 
+
+
+#### DNMT1 levels are more strongly tied to the basal phenotype than to the methylation pattern???
+
+
+
 boxplot(exp$DNMT1 ~ Half)
-boxplot(exp$DNMT1 ~ CIMP)
+boxplot(exp$DNMT3A ~ CIMP)
 
 boxplot(exp$DNMT3A ~ Quar)
 
 boxplot(exp$DNMT3B ~ Quar)
 
+boxplot(exp$AHCY ~ Quar)
+
+boxplot(exp$MAT1A ~ Quar)
+
 ### Survivial curves
 
-fit.diff = survdiff(Surv(OS_Time_nature2012,OS_event_nature2012 == 1) ~ factor(CIMP),
+fit.diff = survdiff(Surv(OS_Time_nature2012,OS_event_nature2012 == 1) ~ factor(Pam50),
                     data=clin) 
-chisq2 = signif(1-pchisq(fit.diff$chisq,length(levels(factor(CIMP)))-1),3) 
-fit1 = survfit(Surv(OS_Time_nature2012,OS_event_nature2012 == 1)~CIMP,
+chisq2 = signif(1-pchisq(fit.diff$chisq,length(levels(factor(Pam50)))-1),3) 
+fit1 = survfit(Surv(OS_Time_nature2012,OS_event_nature2012 == 1)~Pam50,
                data=clin,conf.type="log-log") 
 kmcolours <- c("black", "red", "green", "blue")
 plot(fit1, conf.int=F,col=kmcolours,xlab="Time to death (days)", 
-     ylab="Survival",main=c("All subtype survival by\n methylation CIMPtile "), 
+     ylab="Survival",main=c("All subtype survival by\n methylation Pam50"), 
      lwd=4,mark.time=TRUE)
-legend("bottomleft",legend=levels(factor(CIMP)),
+legend("bottomleft",legend=levels(factor(Pam50)),
        fill = kmcolours, cex = 1)
 
 ###do another anova for signifigance
@@ -243,3 +284,53 @@ stripchart(Stir_Ave$MethScore ~ Her)
 boxplot(exp$DNMT1 ~ Pam50)
 boxplot(Fang_Ave$MethScore ~ Pam50)
 boxplot(Stir_Ave$MethScore ~ Pam50)
+
+
+
+############# What about the predictive value just within the basal subtype?
+clinbasal <- subset(clin, Pam50 == "Basal")
+stirbasal <- subset(Stir_Ave, Pam50 == "Basal")
+fangbasal <- subset(Fang_Ave, Pam50 == "Basal")
+
+brks <- with(stirbasal, quantile(MethScore, probs = c(0, 0.5, 1)))
+stirbasal <- within(stirbasal, half <- cut(MethScore, breaks = brks, labels = 1:2, 
+                                       include.lowest = TRUE))
+
+brks <- with(fangbasal, quantile(MethScore, probs = c(0, 0.5, 1)))
+fangbasal <- within(fangbasal, half <- cut(MethScore, breaks = brks, labels = 1:2, 
+                                                include.lowest = TRUE))
+
+
+brks <- with(stirbasal, quantile(MethScore, probs = c(0, 0.25, 0.5, 0.75, 1)))
+stirbasal <- within(stirbasal, quartile <- cut(MethScore, breaks = brks, labels = 1:4, 
+                                           include.lowest = TRUE))
+
+brks <- with(fangbasal, quantile(MethScore, probs = c(0, 0.25, 0.5, 0.75, 1)))
+fangbasal <- within(fangbasal, quartile <- cut(MethScore, breaks = brks, labels = 1:4, 
+                                              include.lowest = TRUE))
+
+count(fangbasal$half)
+
+count(stirbasal$half)
+
+fangHalf <- as.factor(fangbasal$half)
+stirHalf <- as.factor(stirbasal$half)
+
+stirQuar <- as.factor(stirbasal$quartile)
+fangQuar <- as.factor(fangbasal$quartile)
+
+
+### Survivial curves
+
+fit.diff = survdiff(Surv(OS_Time_nature2012,OS_event_nature2012 == 1) ~ factor(fangHalf),
+                    data=clinbasal) 
+chisq2 = signif(1-pchisq(fit.diff$chisq,length(levels(factor(fangHalf)))-1),3) 
+fit1 = survfit(Surv(OS_Time_nature2012,OS_event_nature2012 == 1)~fangHalf,
+               data=clinbasal,conf.type="log-log") 
+kmcolours <- c("black", "red", "green", "blue")
+plot(fit1, conf.int=F,col=kmcolours,xlab="Time to death (days)", 
+     ylab="Survival",main=c("All subtype survival by\n methylation group "), 
+     lwd=4,mark.time=TRUE)
+legend("bottomleft",legend=levels(factor(fangHalf)),
+       fill = kmcolours, cex = 1)
+
